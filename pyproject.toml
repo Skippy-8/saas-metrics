@@ -1,0 +1,54 @@
+[project]
+name = "saas-metrics"
+version = "0.1.0"
+description = "SaaS revenue metrics from a raw billing export, with written, tested definitions: revenue waterfall (to the cent), net and gross revenue retention, logo churn, quick ratio, cohorts, and an auditable Excel workbook."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Sneh Patel" }]
+keywords = ["saas", "mrr", "arr", "net revenue retention", "gross revenue retention", "churn", "cohort", "fp&a", "revenue waterfall"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+    "duckdb>=1.0",
+    "pandas>=2.1",
+    "pyarrow>=14",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "formulas>=1.2"]
+
+[project.scripts]
+saas-metrics = "saas_metrics.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Skippy-8/saas-metrics"
+Issues = "https://github.com/Skippy-8/saas-metrics/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["saas_metrics"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::SyntaxWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["saas_metrics"]

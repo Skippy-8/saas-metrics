@@ -1,0 +1,18 @@
+# Publish to PyPI when a version tag (v*) is pushed. Uses PyPI trusted publishing: no token is stored.
+# One-time setup on pypi.org: add a "pending publisher" for project saas-metrics, owner Skippy-8,
+# repository saas-metrics, workflow publish-pypi.yml, environment pypi.
+name: publish-pypi
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1

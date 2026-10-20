@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use saas-metrics, please cite it as below."
+title: "saas-metrics: SaaS revenue metrics from a billing export, with tested definitions"
+type: software
+authors:
+  - family-names: Patel
+    given-names: Sneh
+repository-code: "https://github.com/Skippy-8/saas-metrics"
+license: MIT
+version: 0.1.0
+date-released: 2026-10-20
+keywords: [saas, net revenue retention, gross revenue retention, churn, revenue waterfall, fp&a]
