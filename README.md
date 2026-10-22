@@ -1,5 +1,7 @@
 # saas-metrics
 
+[![PyPI](https://img.shields.io/pypi/v/saas-metrics)](https://pypi.org/project/saas-metrics/) [![ci](https://github.com/Skippy-8/saas-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/Skippy-8/saas-metrics/actions/workflows/ci.yml)
+
 SaaS revenue metrics from a raw billing export, with **written, tested definitions**:
 - a revenue waterfall, exact to the cent;
 - net and gross revenue retention, logo churn, quick ratio and ARR;
@@ -14,7 +16,7 @@ open reference implementation:
   enforces, and a workbook whose Checks tab proves it matches the engine.
 
 ```bash
-pip install "saas-metrics @ git+https://github.com/Skippy-8/saas-metrics"   # PyPI release: pip install saas-metrics
+pip install saas-metrics
 
 saas-metrics sample billing.csv          # a synthetic export to try it on
 saas-metrics report billing.csv --customer "Customer" --date "Invoice Date" --amount "Amount" \
