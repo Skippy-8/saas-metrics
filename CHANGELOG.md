@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0 (2026-10-22)
+
+The billing library becomes a toolkit. Everything in 0.1.0 works as before (`analyze`, `report`, `sample`).
+
+- **SEC XBRL peer benchmark and revenue quality** (`benchmark`, `quality`): deferred revenue, RPO, implied
+  billings, SBC and SBC-adjusted FCF from companyfacts, reconciled to each filer's 10-K.
+- **Point-in-time FP&A backtest** (`fetch`, `build`, `backtest --pit`): the forecast sees only filings available at
+  each origin; MAPE / bias scorecard and variance bridges. The full operating model, memo and sources page come
+  with it (formerly the saas-fpa-backtest project; `import saasfpa` still works).
+- **Billing adapters** for Stripe, Chargebee and Salesforce exports (`ledger`), and a cohort engine.
+- **Streamlit workbench** (`pip install "saas-metrics[web]"`, then `saas-metrics app`) and an **MCP server**
+  (`saas-metrics[mcp]`, `saas-metrics mcp`).
+- **Installs cleanly:** company configs and the memo template ship in the wheel; downloads and generated files go to
+  the user data folder or `$SAAS_METRICS_HOME`, never into site-packages.
+- **Requires Python 3.12+** (0.1.0 supported 3.11).
+
 ## 0.1.0 (2026-10-20)
 
 First release.

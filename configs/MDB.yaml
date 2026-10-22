@@ -1,0 +1,304 @@
+# MongoDB, Inc.: the flagship configuration (full operating model, backtest and benchmark).
+#
+# Everything company-specific lives here. The values reproduce the verified build pinned by
+# tests/golden/mdb.json.gz. configs/examples/SYNTHCO.yaml is a second full-model config (a
+# fictional four-segment company) built end to end by tests/test_synthetic_company.py.
+
+company:
+  ticker: MDB
+  name: MongoDB, Inc.
+  short_name: MongoDB
+  cik: 1441816
+  fiscal_year_end_month: 1        # FY26 runs February 2025 to January 2026; labels read "Q2 FY26"
+
+paths:                            # the original locations (other configs default to data/<TICKER>/...)
+  raw: data/raw
+  store: data/saasfpa.duckdb
+  workbook: models/saas_operating_model.xlsx
+  sources: docs/sources.md
+
+sec:
+  filings_from: "2022-07-31"      # one quarter before the window, for cash-flow YTD differencing
+  eight_k_from: "2022-08-01"
+  eight_k_to: "2026-09-30"
+  scope_months: {10-Q: 12, 10-K: 24}   # a filing speaks only for its own period and comparatives
+
+windows:
+  prewindow_from: "2022-01-31"    # Q4 FY22: inputs to trailing-12-month sums only
+  first_quarter_end: "2022-10-31" # Q3 FY23, first of 16 quarters
+  last_quarter_end: "2026-07-31"  # Q2 FY27, last test quarter
+
+backtest:
+  t0_quarter_end: "2025-07-31"    # Q2 FY26: the forecast is frozen here
+  cutoff_date: "2025-08-27"       # Q2 FY26 10-Q filing date; nothing filed later feeds the forecast
+  test_quarters: 4
+  baselines: [seasonal_naive, trend_naive]
+
+lines:
+  revenue:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    label: Total revenue
+  revenue_subscription:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims:
+      srt:ProductOrServiceAxis: us-gaap:LicenseMember
+    label: Subscription revenue
+  revenue_atlas:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims:
+      srt:ProductOrServiceAxis: mdb:MongoDBAtlasRelatedMember
+    label: Atlas-related subscription revenue
+  revenue_other_subscription:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims:
+      srt:ProductOrServiceAxis: mdb:OtherSubscriptionMember
+    label: Other subscription revenue (Enterprise Advanced etc.)
+  revenue_services:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims:
+      srt:ProductOrServiceAxis: us-gaap:ServiceMember
+    label: Services revenue
+  cost_of_revenue:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    label: Cost of revenue
+  cost_subscription:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    dims:
+      srt:ProductOrServiceAxis: us-gaap:LicenseMember
+    label: Cost of subscription revenue
+  cost_services:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    dims:
+      srt:ProductOrServiceAxis: us-gaap:ServiceMember
+    label: Cost of services revenue
+  gross_profit:
+    concept: us-gaap:GrossProfit
+    label: Gross profit
+  rnd:
+    concept: us-gaap:ResearchAndDevelopmentExpense
+    label: Research and development
+  snm:
+    concept: us-gaap:SellingAndMarketingExpense
+    label: Sales and marketing
+  gna:
+    concept: us-gaap:GeneralAndAdministrativeExpense
+    label: General and administrative
+  opex_total:
+    concept: us-gaap:OperatingExpenses
+    label: Total operating expenses
+  operating_income:
+    concept: us-gaap:OperatingIncomeLoss
+    label: Loss/income from operations
+  net_income:
+    concept: us-gaap:NetIncomeLoss
+    label: Net income/loss
+  sbc_total:
+    concept: us-gaap:ShareBasedCompensation
+    label: Stock-based compensation (cash flow)
+  sbc_cost_subscription:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims:
+      us-gaap:IncomeStatementLocationAxis: mdb:CostofRevenueSubscriptionMember
+    alternates:
+    - srt:ProductOrServiceAxis: us-gaap:LicenseMember
+      us-gaap:StatementOfIncomeLocationBalanceAxis: us-gaap:CostOfGoodsAndServicesSold
+    label: SBC in cost of subscription
+  sbc_cost_services:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims:
+      us-gaap:IncomeStatementLocationAxis: mdb:CostofRevenueServicesMember
+    alternates:
+    - srt:ProductOrServiceAxis: us-gaap:ServiceMember
+      us-gaap:StatementOfIncomeLocationBalanceAxis: us-gaap:CostOfGoodsAndServicesSold
+    label: SBC in cost of services
+  sbc_rnd:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims:
+      us-gaap:IncomeStatementLocationAxis: us-gaap:ResearchAndDevelopmentExpenseMember
+    alternates:
+    - us-gaap:StatementOfIncomeLocationBalanceAxis: us-gaap:ResearchAndDevelopmentExpense
+    label: SBC in R&D
+  sbc_snm:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims:
+      us-gaap:IncomeStatementLocationAxis: us-gaap:SellingAndMarketingExpenseMember
+    alternates:
+    - us-gaap:StatementOfIncomeLocationBalanceAxis: us-gaap:SellingAndMarketingExpense
+    label: SBC in S&M
+  sbc_gna:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims:
+      us-gaap:IncomeStatementLocationAxis: us-gaap:GeneralAndAdministrativeExpenseMember
+    alternates:
+    - us-gaap:StatementOfIncomeLocationBalanceAxis: us-gaap:GeneralAndAdministrativeExpense
+    label: SBC in G&A
+  amort_intangibles:
+    concept: us-gaap:AmortizationOfIntangibleAssets
+    label: Amortization of intangibles
+  cfo:
+    concept: us-gaap:NetCashProvidedByUsedInOperatingActivities
+    label: Operating cash flow
+  capex:
+    concept: us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+    label: Capital expenditures
+  cash:
+    concept: us-gaap:CashAndCashEquivalentsAtCarryingValue
+    kind: instant
+    label: Cash and cash equivalents
+  deferred_revenue_current:
+    concept: us-gaap:ContractWithCustomerLiabilityCurrent
+    kind: instant
+    label: Deferred revenue, current
+  deferred_revenue_noncurrent:
+    concept: us-gaap:ContractWithCustomerLiabilityNoncurrent
+    kind: instant
+    label: Deferred revenue, non-current
+  rpo:
+    concept: us-gaap:RevenueRemainingPerformanceObligation
+    kind: instant
+    alternates:
+    - us-gaap:RevenueRemainingPerformanceObligationExpectedTimingOfSatisfactionStartDateAxis: '*'
+    label: Remaining performance obligations
+
+kpis:
+- name: total_customers
+  unit: count
+  pattern: 'we had (over|more than|approximately) ([\d,]+(?:\.\d+)?) customers(?: spanning| across| in)'
+- name: direct_sales_customers
+  unit: count
+  pattern: we had (over|more than|approximately) ([\d,]+(?:\.\d+)?) customers that were sold through our direct sales
+- name: atlas_customers
+  unit: count
+  pattern: We had (over|more than|approximately) ([\d,]+(?:\.\d+)?) (?:Mo ?ngo ?DB )?Atlas customers as of
+- name: customers_100k_arr
+  unit: count
+  pattern: 'number of customers with \$100,000 or greater in ARR(?: and annualized MRR)? was ()([\d,]+(?:\.\d+)?)'
+- name: net_arr_expansion_rate
+  unit: pct
+  pattern: our net ARR expansion rate (?:was|has consistently been) (approximately|over|above)? ?([\d,]+(?:\.\d+)?)%
+- name: atlas_pct_revenue_3m
+  unit: pct
+  pattern: '(?:MongoDB )?Atlas revenue represented ()([\d,]+(?:\.\d+)?)%(?: and \d+%)?,?(?: respectively,)? (?:as compared to|compared to)'
+- name: atlas_pct_revenue_fy
+  unit: pct
+  pattern: '(?:MongoDB )?Atlas represented ()([\d,]+(?:\.\d+)?)%(?:, \d+%)?(?: and \d+%)? of our total revenue for the fiscal years?'
+- name: employees
+  unit: count
+  pattern: we had a total of ()([\d,]+(?:\.\d+)?) employees
+
+guidance:
+  layouts: [two_column_quarter_fy, per_period_blocks]   # parsers in saasfpa/guidance.py
+
+segments:                         # the revenue build, in workbook row order (see saasfpa/segments.py)
+  - key: atlas
+    line: revenue_atlas
+    method: arr_residual          # ARR roll-forward less the trailing-12-month segments, x days / 365
+    short: Atlas
+    label: Atlas-related subscription revenue
+    act_label: Atlas-related revenue
+  - key: ea
+    line: revenue_other_subscription
+    method: yoy_same_quarter
+    arr_basis: trailing_12m       # enters the ARR proxy at its trailing twelve months
+    short: EA
+    label: Other subscription revenue (EA)
+    ca_label: Other subscription (EA) revenue
+    bridge_group: ea_mix_timing
+    bridge_label: Enterprise Advanced mix / timing
+  - key: svc
+    line: revenue_services
+    method: yoy_same_quarter
+    recurring: false
+    short: Services
+    label: Services revenue
+    bridge_group: services
+    bridge_label: Services
+
+arr_proxy:                        # [Historical Derived] proxy, not MongoDB's own ARR
+  run_rate: {line: revenue_atlas, column: atlas_run_rate}       # x 365 / days in the quarter
+  trailing_12m:
+    - {line: revenue_other_subscription, column: other_sub_ttm}
+
+cohort_ledger:                    # [Calibrated Synthetic Cohort Panel]
+  customers_kpi: total_customers
+  nrr_kpi: net_arr_expansion_rate
+  report_kpis: [atlas_customers, customers_100k_arr]   # carried into the calibration table
+  churn_q: 0.035                  # [Illustrative] not disclosed
+  constrain_new_arr_nonnegative: true
+
+departments: [rnd, snm, gna]
+headcount: {kpi: employees, between_disclosures: linear, after_last: prior_year_pace}
+
+drivers:                          # how each forecast driver's Base value and band are derived
+  nrr:
+    from: kpi_at_t0
+    band_pp: 2
+    note_suffix: "FY25-FY26 disclosures ranged 118-120%."
+  new_logos: {from: ledger_trailing_4q_mean, band: min_max}
+  arr_per_new_logo:
+    from: ledger_trailing_4q_ratio
+    band_pct: 25
+    note: "Ledger new-cohort ARR / new logos, trailing 4 quarters to T0 (includes Q1 FY26, near zero). Upside/Downside +/-25% [Forecast Assumption]."
+  churn_q: {from: cohort_ledger}
+  ea_yoy:
+    from: trailing_12m_growth
+    band_pp: 5
+    label: "Other subscription (EA) revenue growth, YoY"
+    note: "Trailing-12-month EA revenue growth at T0; applied to the same quarter a year earlier, which keeps the seasonality of upfront term-license revenue. Upside/Downside +/-5pp [Forecast Assumption]."
+  svc_yoy:
+    from: trailing_12m_growth
+    band_pp: 5
+    note: "Trailing-4-quarter growth vs the prior four quarters. +/-5pp band."
+  sub_gm: {from: trailing_4q, band_pp: 1}
+  svc_gm:
+    from: trailing_4q
+    note: "Trailing 4 quarters to T0 (negative: services are priced to drive subscription)."
+  net_hires_q:
+    from: headcount_trailing_4q
+    note: "Quarterly pace over the 4 quarters to T0, from headcount interpolated between 10-K year-end counts and extended past January 2025 at the FY25 pace [Estimated]."
+  amort_q: {from: t0_quarter}
+  cph_growth: {from: trailing_4q_cagr}
+  sbc_pct: {from: trailing_4q}
+  fcf_conversion: {from: same_quarter_prior_year}
+
+bridge:
+  order: [expansion, new_logo_volume, new_logo_arr, ea_mix_timing, services,
+          gross_margin, headcount_pace, cost_per_head, amortization, fcf_conversion]
+
+checks:
+  identities:                     # left = right within $0.50, every in-window quarter, both vintages
+    - {name: atlas + other subscription = subscription,
+       expr: revenue_atlas + revenue_other_subscription = revenue_subscription}
+    - {name: subscription + services = revenue, expr: revenue_subscription + revenue_services = revenue}
+    - {name: cost subscription + cost services = cost of revenue,
+       expr: cost_subscription + cost_services = cost_of_revenue}
+    - {name: revenue - cost of revenue = gross profit, expr: revenue - cost_of_revenue = gross_profit}
+    - {name: R&D + S&M + G&A = operating expenses, expr: rnd + snm + gna = opex_total}
+    - {name: gross profit - opex = operating income, expr: gross_profit - opex_total = operating_income}
+    - {name: SBC by function = SBC (cash flow),
+       expr: sbc_cost_subscription + sbc_cost_services + sbc_rnd + sbc_snm + sbc_gna = sbc_total}
+
+unit_econ:                        # defaults reproduce the memo's GTM case
+  horizon_months: 36
+  discount_rate: 0.10
+  case_a: {n_ae: 30, ae_cost: 350000, support_pct: 0.30, quota: 1000000, attainment: 0.70,
+           ramp_months: 6, commission: 0.10, rep_attrition_annual: 0.0}
+  case_b: {target_kpi: customers_100k_arr, target_label: "Customers with >$100k ARR", target_short: ">$100k customers",
+           attach_rate: 0.15, arr_per_attach: 40000,
+           adoption_months: 12, upfront_cost: 15000000, run_cost_monthly: 500000}
+  net_expansion: {from: kpi_at_t0, kpi: net_arr_expansion_rate}
+  gross_margin: {from: trailing_4q_non_gaap_subscription}
+
+benchmark:
+  lines:
+    revenue: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    cost_of_revenue: us-gaap:CostOfGoodsAndServicesSold
+    rnd: us-gaap:ResearchAndDevelopmentExpense
+    snm: us-gaap:SellingAndMarketingExpense
+    gna: us-gaap:GeneralAndAdministrativeExpense
+    operating_income: us-gaap:OperatingIncomeLoss
+    sbc: us-gaap:ShareBasedCompensation
+    amortization: us-gaap:AmortizationOfIntangibleAssets
+    cfo: us-gaap:NetCashProvidedByUsedInOperatingActivities
+    capex: [us-gaap:PaymentsToAcquirePropertyPlantAndEquipment]
+  check_tags: {gross_profit: us-gaap:GrossProfit, opex_total: us-gaap:OperatingExpenses}

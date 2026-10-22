@@ -1,0 +1,4 @@
+# Streamlit Community Cloud installs this project plus the workbench extras.
+# Do not commit uv.lock alongside this file: Community Cloud prioritises uv.lock and
+# `uv sync` would not install the optional `web` dependencies without an explicit extra.
+-e .[web]

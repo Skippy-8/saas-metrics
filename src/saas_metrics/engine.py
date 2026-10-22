@@ -15,7 +15,7 @@ import pandas as pd
 from saas_metrics.calendar import ANNUALIZE, period_end, periods_between
 from saas_metrics.inputs import prepare
 
-SQL = Path(__file__).parent / "sql"
+SQL = Path(__file__).parent / "sql" / "billing"
 REQUIRED = ("customer_id", "period", "revenue")
 OPTIONAL = ("segment", "channel")
 DEFAULT_TIERS = (0, 10_000, 100_000, 1_000_000)   # lower bounds, annualised revenue

@@ -1,0 +1,181 @@
+# SynthCo: a FICTIONAL company, used to prove the full operating model is driven by its config.
+#
+# Nothing here is real. scripts/make_synthetic_company.py generates its "filings" (XBRL-style facts,
+# KPI disclosures, guidance and reported non-GAAP figures) from a seeded random process, and
+# tests/test_synthetic_company.py builds the store, the workbook and the backtest from them.
+#
+# It differs from MongoDB on purpose: four revenue segments (two of them on a trailing-12-month
+# ARR basis), a December fiscal year end, different KPI names and different GTM inputs.
+# Copy it as the starting point for a new full-model company (see the README).
+
+company:
+  ticker: SYNTHCO
+  name: SynthCo (fictional)
+  short_name: SynthCo
+  cik: 0                          # not an SEC registrant
+  fiscal_year_end_month: 12       # calendar fiscal year; the quarter ended 2025-06-30 is "Q2 FY25"
+
+sec:
+  filings_from: "2021-09-30"      # Q3 FY21 10-Q: its 9-month YTD makes Q4 FY21 derivable
+  eight_k_from: "2021-10-01"
+  eight_k_to: "2026-08-31"
+  scope_months: {10-Q: 12, 10-K: 24}
+
+windows:
+  prewindow_from: "2021-12-31"    # inputs to trailing-12-month sums only
+  first_quarter_end: "2022-09-30" # first of 16 quarters
+  last_quarter_end: "2026-06-30"  # last test quarter
+
+backtest:
+  t0_quarter_end: "2025-06-30"    # Q2 FY25
+  cutoff_date: "2025-08-10"       # after the Q2 FY25 10-Q and earnings release
+  test_quarters: 4
+  baselines: [seasonal_naive, trend_naive]
+
+lines:
+  revenue:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    label: Total revenue
+  revenue_subscription:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims: {srt:ProductOrServiceAxis: synth:SubscriptionMember}
+    label: Subscription revenue
+  revenue_platform:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims: {srt:ProductOrServiceAxis: synth:CloudPlatformMember}
+    label: Cloud platform revenue
+  revenue_addons:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims: {srt:ProductOrServiceAxis: synth:AddOnModulesMember}
+    label: Add-on modules revenue
+  revenue_licenses:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims: {srt:ProductOrServiceAxis: synth:TermLicenseMember}
+    label: Term license revenue
+  revenue_prosvc:
+    concept: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    dims: {srt:ProductOrServiceAxis: us-gaap:ServiceMember}
+    label: Professional services revenue
+  cost_of_revenue:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    label: Cost of revenue
+  cost_subscription:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    dims: {srt:ProductOrServiceAxis: synth:SubscriptionMember}
+    label: Cost of subscription revenue
+  cost_services:
+    concept: us-gaap:CostOfGoodsAndServicesSold
+    dims: {srt:ProductOrServiceAxis: us-gaap:ServiceMember}
+    label: Cost of professional services
+  gross_profit:
+    concept: us-gaap:GrossProfit
+    label: Gross profit
+  rnd:
+    concept: us-gaap:ResearchAndDevelopmentExpense
+    label: Research and development
+  snm:
+    concept: us-gaap:SellingAndMarketingExpense
+    label: Sales and marketing
+  gna:
+    concept: us-gaap:GeneralAndAdministrativeExpense
+    label: General and administrative
+  opex_total:
+    concept: us-gaap:OperatingExpenses
+    label: Total operating expenses
+  operating_income:
+    concept: us-gaap:OperatingIncomeLoss
+    label: Income/loss from operations
+  sbc_total:
+    concept: us-gaap:ShareBasedCompensation
+    label: Stock-based compensation (cash flow)
+  sbc_cost_subscription:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims: {us-gaap:IncomeStatementLocationAxis: synth:CostOfSubscriptionMember}
+    label: SBC in cost of subscription
+  sbc_cost_services:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims: {us-gaap:IncomeStatementLocationAxis: synth:CostOfServicesMember}
+    label: SBC in cost of services
+  sbc_rnd:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims: {us-gaap:IncomeStatementLocationAxis: us-gaap:ResearchAndDevelopmentExpenseMember}
+    label: SBC in R&D
+  sbc_snm:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims: {us-gaap:IncomeStatementLocationAxis: us-gaap:SellingAndMarketingExpenseMember}
+    label: SBC in S&M
+  sbc_gna:
+    concept: us-gaap:AllocatedShareBasedCompensationExpense
+    dims: {us-gaap:IncomeStatementLocationAxis: us-gaap:GeneralAndAdministrativeExpenseMember}
+    label: SBC in G&A
+  amort_intangibles:
+    concept: us-gaap:AmortizationOfIntangibleAssets
+    label: Amortization of intangibles
+  cfo:
+    concept: us-gaap:NetCashProvidedByUsedInOperatingActivities
+    label: Operating cash flow
+  capex:
+    concept: us-gaap:PaymentsToAcquirePropertyPlantAndEquipment
+    label: Capital expenditures
+
+segments:
+  - key: platform
+    line: revenue_platform
+    method: arr_residual          # usage-based, ratable: annualised by days in the quarter
+    short: Platform
+    label: Cloud platform revenue
+  - key: addons
+    line: revenue_addons
+    method: yoy_same_quarter
+    arr_basis: trailing_12m
+    short: Add-ons
+    label: Add-on modules revenue
+  - key: licenses
+    line: revenue_licenses
+    method: yoy_same_quarter
+    arr_basis: trailing_12m       # term licenses recognised up front: lumpy by quarter
+    short: Licenses
+    label: Term license revenue
+    bridge_label: Term license timing
+  - key: prosvc
+    line: revenue_prosvc
+    method: yoy_same_quarter
+    recurring: false
+    short: Services
+    label: Professional services revenue
+
+arr_proxy:
+  run_rate: {line: revenue_platform, column: platform_run_rate}
+  trailing_12m:
+    - {line: revenue_addons, column: addons_ttm}
+    - {line: revenue_licenses, column: licenses_ttm}
+
+cohort_ledger:
+  customers_kpi: total_customers
+  nrr_kpi: net_revenue_retention
+  report_kpis: [customers_50k_arr]
+  churn_q: 0.03                   # [Illustrative]
+  constrain_new_arr_nonnegative: true
+
+departments: [rnd, snm, gna]
+headcount: {kpi: employees, between_disclosures: linear, after_last: prior_year_pace}
+
+checks:
+  identities:
+    - {name: segments = subscription, expr: revenue_platform + revenue_addons + revenue_licenses = revenue_subscription}
+    - {name: subscription + services = revenue, expr: revenue_subscription + revenue_prosvc = revenue}
+    - {name: cost lines = cost of revenue, expr: cost_subscription + cost_services = cost_of_revenue}
+    - {name: revenue - cost of revenue = gross profit, expr: revenue - cost_of_revenue = gross_profit}
+    - {name: R&D + S&M + G&A = operating expenses, expr: rnd + snm + gna = opex_total}
+    - {name: gross profit - opex = operating income, expr: gross_profit - opex_total = operating_income}
+    - {name: SBC by function = SBC (cash flow),
+       expr: sbc_cost_subscription + sbc_cost_services + sbc_rnd + sbc_snm + sbc_gna = sbc_total}
+
+unit_econ:
+  horizon_months: 36
+  discount_rate: 0.12
+  case_a: {n_ae: 20, ae_cost: 300000, support_pct: 0.25, quota: 900000, attainment: 0.75,
+           ramp_months: 6, commission: 0.10, rep_attrition_annual: 0.0}
+  case_b: {target_kpi: customers_50k_arr, target_label: "Customers with >$50k ARR", target_short: ">$50k customers",
+           attach_rate: 0.20, arr_per_attach: 25000, adoption_months: 9, upfront_cost: 6000000,
+           run_cost_monthly: 250000}

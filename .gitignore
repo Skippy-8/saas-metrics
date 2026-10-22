@@ -1,9 +1,25 @@
 .venv/
 __pycache__/
+*.pyc
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
-dist/
 build/
+dist/
+# downloaded SEC files and the built database are reproducible: never committed
+/data/
+*.duckdb
+*.duckdb.wal
+.env
+.env.*
+!.env.example
 .DS_Store
-*.xlsx
+
+# generated reports and workbooks (the committed model lives in models/)
+/metrics.xlsx
+/comps.xlsx
+/cohorts.xlsx
+/out/
+
+# local notes: never committed
+/private/

@@ -1,0 +1,404 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>MongoDB QBR backtest memo</title><style>
+:root{--fg:#1b1f24;--muted:#5b6672;--rule:#d9dee3;--up:#2e7d4f;--down:#b23b3b;--tot:#3550c8;--bg:#fff}
+@media (prefers-color-scheme:dark){:root{--fg:#e6e9ed;--muted:#9aa5b1;--rule:#39424b;--bg:#14181c;--tot:#7d93f0}}
+body{font:15px/1.5 Georgia,'Times New Roman',serif;color:var(--fg);background:var(--bg);max-width:860px;margin:32px auto;padding:0 16px}
+h1{font-size:24px;margin-bottom:4px}h2{font-size:18px;border-bottom:1px solid var(--rule);padding-bottom:4px;margin-top:28px}
+table{border-collapse:collapse;width:100%;font:13px/1.4 -apple-system,Segoe UI,Helvetica,sans-serif;margin:10px 0 16px;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--rule);padding:4px 8px;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+figure{margin:12px 0}.wf{width:100%;height:auto;font:11px -apple-system,Segoe UI,Helvetica,sans-serif}
+.wf .up{fill:var(--up)}.wf .down{fill:var(--down)}.wf .total{fill:var(--tot)}.wf text{fill:var(--fg)}
+.wf .v,.wf .l{text-anchor:middle}.wf .wf-title{font-weight:600}
+em,.muted{color:var(--muted)}</style></head><body><h1>MongoDB: frozen-forecast QBR and GTM capital-allocation memo</h1>
+<p><em>An FP&amp;A exercise built only from public SEC filings. The operating model was frozen at Q2 FY26 using information filed by 2025-08-27, then scored against the 4 quarters MongoDB reported afterwards (Q3 FY26 to Q2 FY27). Figures are in US dollars; "non-GAAP" in the model excludes stock-based compensation and amortization of intangibles. Not investment advice.</em></p>
+<h2>Section 1: Executive summary and scorecard</h2>
+<ul>
+<li><strong>Revenue beat the frozen plan by $46.8M (+1.7%).</strong> The plan's total error over the year (-1.7%) was smaller than either naive baseline's, and far smaller than the error in management's own guidance at the cutoff (-8.6% over the 2 quarters it covered). Quarter by quarter, however, the driver model (mean absolute error 3.4%) did not beat a simple trend extrapolation (3.0%).</li>
+<li><strong>Profit and cash beat by more than revenue.</strong> Non-GAAP operating income was $77.4M above plan (+15.9%) and free cash flow $316.4M above (+92.3%). Most of the cash surprise came from a planning assumption (cash conversion), not from the business.</li>
+<li><strong>Efficiency improved through the year.</strong> Rule of 40 rose from 34.5% to 54.2%, CAC payback shortened from 24.9 to 21.8 months, and the magic number rose from 0.54 to 0.66.</li>
+<li><strong>Recommendation:</strong> do not commit to 30 incremental Enterprise AEs on the case's assumptions. Fund a pilot of 10 and release the rest only if ramped reps reach 42% of quota, the attainment at which the hiring case breaks even.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>4 quarters, Q3 FY26 to Q2 FY27</th>
+<th style="text-align: right;">Frozen plan</th>
+<th style="text-align: right;">Actual</th>
+<th style="text-align: right;">Variance</th>
+<th style="text-align: right;">%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Revenue</td>
+<td style="text-align: right;">$2,736.0M</td>
+<td style="text-align: right;">$2,782.8M</td>
+<td style="text-align: right;">+$46.8M</td>
+<td style="text-align: right;">+1.7%</td>
+</tr>
+<tr>
+<td>Non-GAAP operating income</td>
+<td style="text-align: right;">$487.7M</td>
+<td style="text-align: right;">$565.1M</td>
+<td style="text-align: right;">+$77.4M</td>
+<td style="text-align: right;">+15.9%</td>
+</tr>
+<tr>
+<td>Free cash flow</td>
+<td style="text-align: right;">$342.6M</td>
+<td style="text-align: right;">$659.0M</td>
+<td style="text-align: right;">+$316.4M</td>
+<td style="text-align: right;">+92.3%</td>
+</tr>
+</tbody>
+</table>
+<h2>Section 2: Forecast backtest and variance diagnosis</h2>
+<p><strong>How the forecast was built.</strong> Atlas revenue follows an ARR roll-forward: the existing book expands at the disclosed net ARR expansion rate (119% at the cutoff) and new logos add ARR at the trailing-year rate. Enterprise Advanced (EA) and services revenue grow year over year from the same quarter, which keeps their seasonality. Operating expenses are headcount times non-GAAP spend per employee by department. New-logo counts come from a calibrated synthetic cohort panel that reconciles to reported customers; MongoDB does not disclose cohorts or churn, so the churn rate behind it is an assumption. Nothing filed after the cutoff feeds the plan.</p>
+<p><strong>Accuracy against simple alternatives.</strong> The two naive baselines use only pre-cutoff revenue: the seasonal version grows each quarter of last year by trailing-year growth (21.9%), and the trend version compounds the last year's average quarterly growth (5.5%).</p>
+<table>
+<thead>
+<tr>
+<th>Revenue forecast error</th>
+<th style="text-align: right;">Q3 FY26</th>
+<th style="text-align: right;">Q4 FY26</th>
+<th style="text-align: right;">Q1 FY27</th>
+<th style="text-align: right;">Q2 FY27</th>
+<th style="text-align: right;">Mean abs. error</th>
+<th style="text-align: right;">Total error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Driver model (Base)</td>
+<td style="text-align: right;">+3.9%</td>
+<td style="text-align: right;">-3.1%</td>
+<td style="text-align: right;">-1.1%</td>
+<td style="text-align: right;">-5.5%</td>
+<td style="text-align: right;">3.4%</td>
+<td style="text-align: right;">-1.7%</td>
+</tr>
+<tr>
+<td>Driver model (Upside)</td>
+<td style="text-align: right;">+5.7%</td>
+<td style="text-align: right;">-1.0%</td>
+<td style="text-align: right;">+1.5%</td>
+<td style="text-align: right;">-2.6%</td>
+<td style="text-align: right;">2.7%</td>
+<td style="text-align: right;">+0.7%</td>
+</tr>
+<tr>
+<td>Trend naive</td>
+<td style="text-align: right;">-0.7%</td>
+<td style="text-align: right;">-5.4%</td>
+<td style="text-align: right;">+0.9%</td>
+<td style="text-align: right;">-5.2%</td>
+<td style="text-align: right;">3.0%</td>
+<td style="text-align: right;">-2.7%</td>
+</tr>
+<tr>
+<td>Seasonal naive</td>
+<td style="text-align: right;">+2.7%</td>
+<td style="text-align: right;">-3.8%</td>
+<td style="text-align: right;">-2.7%</td>
+<td style="text-align: right;">-6.6%</td>
+<td style="text-align: right;">3.9%</td>
+<td style="text-align: right;">-2.8%</td>
+</tr>
+<tr>
+<td>Management guidance</td>
+<td style="text-align: right;">-6.2%</td>
+<td style="text-align: right;">-10.8%</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">n/a</td>
+<td style="text-align: right;">8.5%</td>
+<td style="text-align: right;">-8.6%</td>
+</tr>
+</tbody>
+</table>
+<p>The scenario band was too narrow: actual revenue fell inside the Downside-to-Upside range in only 1 of the 4 quarters, above the Upside case in 2 and below the Downside case in 1. In Q3 FY26 the plan over-forecast by +3.9%, and even the Downside scenario was too high (+2.2%). The most accurate forecast per quarter was the driver model's Upside case (2.7% mean absolute error). Management guided that quarter to $589.5M against an actual $628.3M, and guided non-GAAP operating income to $68.0M against $123.1M (company definition): guidance was conservative, which made it a poor point forecast.</p>
+<figure><svg viewBox="0 0 760 300" role="img" aria-label="Revenue: frozen plan to actual, 4 quarters (axis starts at $2,681.3M, not zero)" class="wf"><text x="40" y="20" class="wf-title">Revenue: frozen plan to actual, 4 quarters (axis starts at $2,681.3M, not zero)</text><rect x="40" y="145.7" width="66.5" height="114.3" class="total"/><text x="73.2" y="141.7" class="v">$2,736.0M</text><text x="73.2" y="274" class="l">Plan</text><rect x="135" y="96.0" width="66.5" height="49.7" class="up"/><text x="168.2" y="92.0" class="v">+$23.8M</text><text x="168.2" y="274" class="l">Expansion</text><rect x="230" y="78.0" width="66.5" height="18.0" class="up"/><text x="263.2" y="74.0" class="v">+$8.6M</text><text x="263.2" y="274" class="l">Logo volume</text><rect x="325" y="78.0" width="66.5" height="28.8" class="down"/><text x="358.2" y="74.0" class="v">-$13.8M</text><text x="358.2" y="274" class="l">ARR/logo</text><rect x="420" y="40.0" width="66.5" height="66.8" class="up"/><text x="453.2" y="36.0" class="v">+$32.0M</text><text x="453.2" y="274" class="l">EA timing</text><rect x="515" y="40.0" width="66.5" height="8.0" class="down"/><text x="548.2" y="36.0" class="v">-$3.8M</text><text x="548.2" y="274" class="l">Services</text><rect x="610" y="48.0" width="66.5" height="212.0" class="total"/><text x="643.2" y="44.0" class="v">$2,782.8M</text><text x="643.2" y="274" class="l">Actual</text></svg></figure><figure><svg viewBox="0 0 760 300" role="img" aria-label="Non-GAAP operating income: frozen plan to actual, 4 quarters (axis starts at $477.9M, not zero)" class="wf"><text x="40" y="20" class="wf-title">Non-GAAP operating income: frozen plan to actual, 4 quarters (axis starts at $477.9M, not zero)</text><rect x="40" y="247.8" width="44.1" height="12.2" class="total"/><text x="62.0" y="243.8" class="v">$487.7M</text><text x="62.0" y="274" class="l">Plan</text><rect x="103" y="224.4" width="44.1" height="23.4" class="up"/><text x="125.0" y="220.4" class="v">+$18.8M</text><text x="125.0" y="274" class="l">Expansion</text><rect x="166" y="215.9" width="44.1" height="8.5" class="up"/><text x="188.1" y="211.9" class="v">+$6.8M</text><text x="188.1" y="274" class="l">Logo volume</text><rect x="229" y="215.9" width="44.1" height="13.6" class="down"/><text x="251.1" y="211.9" class="v">-$10.9M</text><text x="251.1" y="274" class="l">ARR/logo</text><rect x="292" y="198.0" width="44.1" height="31.5" class="up"/><text x="314.1" y="194.0" class="v">+$25.2M</text><text x="314.1" y="274" class="l">EA timing</text><rect x="355" y="195.4" width="44.1" height="2.5" class="up"/><text x="377.1" y="191.4" class="v">+$2.0M</text><text x="377.1" y="274" class="l">Services</text><rect x="418" y="195.4" width="44.1" height="3.5" class="down"/><text x="440.1" y="191.4" class="v">-$2.8M</text><text x="440.1" y="274" class="l">GM rate</text><rect x="481" y="40.0" width="44.1" height="158.9" class="up"/><text x="503.1" y="36.0" class="v">+$127.1M</text><text x="503.1" y="274" class="l">Headcount</text><rect x="544" y="40.0" width="44.1" height="111.1" class="down"/><text x="566.0" y="36.0" class="v">-$88.8M</text><text x="566.0" y="274" class="l">Cost/head</text><rect x="607" y="151.1" width="44.1" height="1.0" class="up"/><text x="629.0" y="147.1" class="v">+$0.0M</text><text x="629.0" y="274" class="l">Amort.</text><rect x="670" y="151.1" width="44.1" height="108.9" class="total"/><text x="692.0" y="147.1" class="v">$565.1M</text><text x="692.0" y="274" class="l">Actual</text></svg></figure>
+
+<p><strong>Revenue bridge.</strong> Each driver is replaced in turn by the value that reproduces the reported result; the order is fixed (volume before rate, revenue before cost), and the attribution depends on it.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Q3 FY26</th>
+<th style="text-align: right;">Q4 FY26</th>
+<th style="text-align: right;">Q1 FY27</th>
+<th style="text-align: right;">Q2 FY27</th>
+<th style="text-align: right;">4Q</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frozen plan</td>
+<td style="text-align: right;">$652.8M</td>
+<td style="text-align: right;">$673.7M</td>
+<td style="text-align: right;">$680.3M</td>
+<td style="text-align: right;">$729.2M</td>
+<td style="text-align: right;">$2,736.0M</td>
+</tr>
+<tr>
+<td>Expansion of existing customers (NRR / usage)</td>
+<td style="text-align: right;">+$1.3M</td>
+<td style="text-align: right;">+$4.0M</td>
+<td style="text-align: right;">+$6.8M</td>
+<td style="text-align: right;">+$11.8M</td>
+<td style="text-align: right;">+$23.8M</td>
+</tr>
+<tr>
+<td>New-logo volume</td>
+<td style="text-align: right;">+$0.7M</td>
+<td style="text-align: right;">+$1.6M</td>
+<td style="text-align: right;">+$2.4M</td>
+<td style="text-align: right;">+$4.0M</td>
+<td style="text-align: right;">+$8.6M</td>
+</tr>
+<tr>
+<td>ARR per new logo</td>
+<td style="text-align: right;">-$4.4M</td>
+<td style="text-align: right;">-$1.2M</td>
+<td style="text-align: right;">-$7.2M</td>
+<td style="text-align: right;">-$1.0M</td>
+<td style="text-align: right;">-$13.8M</td>
+</tr>
+<tr>
+<td>Enterprise Advanced mix / timing</td>
+<td style="text-align: right;">-$19.2M</td>
+<td style="text-align: right;">+$17.4M</td>
+<td style="text-align: right;">+$6.3M</td>
+<td style="text-align: right;">+$27.6M</td>
+<td style="text-align: right;">+$32.0M</td>
+</tr>
+<tr>
+<td>Services</td>
+<td style="text-align: right;">-$2.7M</td>
+<td style="text-align: right;">-$0.4M</td>
+<td style="text-align: right;">-$1.0M</td>
+<td style="text-align: right;">+$0.2M</td>
+<td style="text-align: right;">-$3.8M</td>
+</tr>
+<tr>
+<td><strong>Actual</strong></td>
+<td style="text-align: right;"><strong>$628.3M</strong></td>
+<td style="text-align: right;"><strong>$695.1M</strong></td>
+<td style="text-align: right;"><strong>$687.6M</strong></td>
+<td style="text-align: right;"><strong>$771.8M</strong></td>
+<td style="text-align: right;"><strong>$2,782.8M</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>EA timing explains the quarterly pattern.</strong> The plan grew EA 9.9% year over year in every quarter; actual year-over-year growth ranged from -7.3% to +35.9%. Upfront recognition of term licenses moved revenue between quarters: -$19.2M in the first test quarter, then +$17.4M in the next.</li>
+<li><strong>Expansion added $23.8M to revenue</strong> as the disclosed net ARR expansion rate rose from 119% to 122%. The plan held it flat.</li>
+<li><strong>New-logo ARR was lower than planned (-$13.8M)</strong> while logo volume was higher (+$8.6M). In the calibrated panel, more customers landed at smaller initial spend; because the panel's churn rate is assumed, treat this split as directional.</li>
+</ul>
+<p><strong>Operating income bridge.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Q3 FY26</th>
+<th style="text-align: right;">Q4 FY26</th>
+<th style="text-align: right;">Q1 FY27</th>
+<th style="text-align: right;">Q2 FY27</th>
+<th style="text-align: right;">4Q</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frozen plan</td>
+<td style="text-align: right;">$118.2M</td>
+<td style="text-align: right;">$121.2M</td>
+<td style="text-align: right;">$113.0M</td>
+<td style="text-align: right;">$135.3M</td>
+<td style="text-align: right;">$487.7M</td>
+</tr>
+<tr>
+<td>Expansion of existing customers (NRR / usage)</td>
+<td style="text-align: right;">+$1.0M</td>
+<td style="text-align: right;">+$3.1M</td>
+<td style="text-align: right;">+$5.3M</td>
+<td style="text-align: right;">+$9.3M</td>
+<td style="text-align: right;">+$18.8M</td>
+</tr>
+<tr>
+<td>New-logo volume</td>
+<td style="text-align: right;">+$0.5M</td>
+<td style="text-align: right;">+$1.3M</td>
+<td style="text-align: right;">+$1.9M</td>
+<td style="text-align: right;">+$3.1M</td>
+<td style="text-align: right;">+$6.8M</td>
+</tr>
+<tr>
+<td>ARR per new logo</td>
+<td style="text-align: right;">-$3.5M</td>
+<td style="text-align: right;">-$1.0M</td>
+<td style="text-align: right;">-$5.6M</td>
+<td style="text-align: right;">-$0.8M</td>
+<td style="text-align: right;">-$10.9M</td>
+</tr>
+<tr>
+<td>Enterprise Advanced mix / timing</td>
+<td style="text-align: right;">-$15.1M</td>
+<td style="text-align: right;">+$13.7M</td>
+<td style="text-align: right;">+$5.0M</td>
+<td style="text-align: right;">+$21.7M</td>
+<td style="text-align: right;">+$25.2M</td>
+</tr>
+<tr>
+<td>Services</td>
+<td style="text-align: right;">+$1.4M</td>
+<td style="text-align: right;">+$0.2M</td>
+<td style="text-align: right;">+$0.5M</td>
+<td style="text-align: right;">-$0.1M</td>
+<td style="text-align: right;">+$2.0M</td>
+</tr>
+<tr>
+<td>Gross margin rate</td>
+<td style="text-align: right;">-$6.7M</td>
+<td style="text-align: right;">+$2.2M</td>
+<td style="text-align: right;">-$5.3M</td>
+<td style="text-align: right;">+$7.1M</td>
+<td style="text-align: right;">-$2.8M</td>
+</tr>
+<tr>
+<td>Headcount pace</td>
+<td style="text-align: right;">+$20.7M</td>
+<td style="text-align: right;">+$28.0M</td>
+<td style="text-align: right;">+$35.4M</td>
+<td style="text-align: right;">+$43.0M</td>
+<td style="text-align: right;">+$127.1M</td>
+</tr>
+<tr>
+<td>Cost per head</td>
+<td style="text-align: right;">+$2.5M</td>
+<td style="text-align: right;">-$20.5M</td>
+<td style="text-align: right;">-$33.3M</td>
+<td style="text-align: right;">-$37.5M</td>
+<td style="text-align: right;">-$88.8M</td>
+</tr>
+<tr>
+<td>Amortization</td>
+<td style="text-align: right;">+$0.0M</td>
+<td style="text-align: right;">+$0.1M</td>
+<td style="text-align: right;">-$0.1M</td>
+<td style="text-align: right;">+$0.0M</td>
+<td style="text-align: right;">+$0.0M</td>
+</tr>
+<tr>
+<td><strong>Actual</strong></td>
+<td style="text-align: right;"><strong>$119.0M</strong></td>
+<td style="text-align: right;"><strong>$148.2M</strong></td>
+<td style="text-align: right;"><strong>$116.7M</strong></td>
+<td style="text-align: right;"><strong>$181.1M</strong></td>
+<td style="text-align: right;"><strong>$565.1M</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The people cost lines offset each other.</strong> The plan added 130 employees a quarter from an estimated 5,818 at the cutoff. The Q4 FY26 10-K later showed 5,636 employees, only 78 more than a year earlier, and implies about 5,597 at the cutoff. Fewer heads (+$127.1M) at a higher cost per head (-$88.8M) netted to +$38.2M. Headcount is disclosed only annually, so the split between pace and rate is uncertain for the latest quarters; the net is exact.</li>
+<li><strong>Cash conversion drove the free cash flow beat (+$263.4M).</strong> The plan converted non-GAAP operating income to cash at the prior year's ratios for the same quarters (0.36x and 0.23x); actual conversion was 1.19x and 1.20x.</li>
+</ul>
+<p><strong>What I would change in the next forecast.</strong></p>
+<ul>
+<li>Forecast EA from term-license renewals and bookings rather than a flat year-over-year rate; it is the largest source of quarterly revenue error.</li>
+<li>Model cash conversion from billings and collections, or at least a multi-year seasonal average, not a single prior-year quarter.</li>
+<li>Let the expansion rate move with the trend in disclosed net ARR expansion instead of holding it at the cutoff value.</li>
+<li>Keep a naive benchmark in every forecast review: this year the trend baseline was more accurate per quarter than the Base case.</li>
+</ul>
+<h2>Section 3: Unit economics and GTM capital allocation</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align: right;">Q2 FY26 (cutoff)</th>
+<th style="text-align: right;">Q2 FY27 (latest)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Revenue growth, YoY</td>
+<td style="text-align: right;">23.7%</td>
+<td style="text-align: right;">30.5%</td>
+</tr>
+<tr>
+<td>FCF margin, trailing 4Q</td>
+<td style="text-align: right;">10.8%</td>
+<td style="text-align: right;">23.7%</td>
+</tr>
+<tr>
+<td>Rule of 40</td>
+<td style="text-align: right;">34.5%</td>
+<td style="text-align: right;">54.2%</td>
+</tr>
+<tr>
+<td>CAC payback (months)</td>
+<td style="text-align: right;">24.9</td>
+<td style="text-align: right;">21.8</td>
+</tr>
+<tr>
+<td>Magic number</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">0.66</td>
+</tr>
+<tr>
+<td>Net ARR expansion rate</td>
+<td style="text-align: right;">119%</td>
+<td style="text-align: right;">122%</td>
+</tr>
+<tr>
+<td>LTV : CAC [Illustrative: assumed churn]</td>
+<td style="text-align: right;">5.2x</td>
+<td style="text-align: right;">5.7x</td>
+</tr>
+</tbody>
+</table>
+<p>Sales efficiency improved, but MongoDB still recovered sales and marketing spend in roughly 21.8 months of gross-margin-adjusted net new ARR, and generated $0.66 of annualized subscription revenue per dollar of prior-year sales and marketing.</p>
+<p><strong>The case.</strong> Case A hires 30 Enterprise AEs at $350k each, with a $1.0M annual quota, 70% attainment and a 6-month ramp. Case B sells an add-on to the 2,564 customers above $100k ARR at a 15% attach rate. Both use the disclosed expansion rate, the trailing non-GAAP subscription gross margin and a 10% hurdle rate over 36 months; the remaining inputs are illustrative.</p>
+<table>
+<thead>
+<tr>
+<th>Case (36 months)</th>
+<th style="text-align: right;">Payback</th>
+<th style="text-align: right;">NPV</th>
+<th style="text-align: right;">IRR</th>
+<th style="text-align: right;">Peak investment</th>
+<th style="text-align: right;">ARR at month 36</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Hire Enterprise AEs, plan assumptions</td>
+<td style="text-align: right;">month 25</td>
+<td style="text-align: right;">$23.1M</td>
+<td style="text-align: right;">114.2%</td>
+<td style="text-align: right;">-$9.2M</td>
+<td style="text-align: right;">$75.0M</td>
+</tr>
+<tr>
+<td>A. Same, at MongoDB's current efficiency</td>
+<td style="text-align: right;">not within 36 months</td>
+<td style="text-align: right;">-$13.8M</td>
+<td style="text-align: right;">-60.7%</td>
+<td style="text-align: right;">-$17.5M</td>
+<td style="text-align: right;">$27.7M</td>
+</tr>
+<tr>
+<td>B. Product attach to &gt;$100k customers</td>
+<td style="text-align: right;">month 31</td>
+<td style="text-align: right;">$1.7M</td>
+<td style="text-align: right;">16.0%</td>
+<td style="text-align: right;">-$16.2M</td>
+<td style="text-align: right;">$23.6M</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On its own assumptions, hiring wins:</strong> case A pays back in month 25 with an NPV of $23.1M, ahead of case B (month 31, $1.7M). <strong>But those assumptions imply $1.33 of new ARR per dollar of AE cost, against MongoDB's magic number of 0.54 at the cutoff.</strong> At MongoDB's current efficiency, attainment would be about 26% instead of 70%, and case A does not pay back within 36 months (NPV -$13.8M). The decision turns on one number: attainment. The case breaks even at 42%.</p>
+<p><strong>Recommendation.</strong></p>
+<ul>
+<li>Approve 10 Enterprise AEs now, about a third of the request.</li>
+<li>After the 6-month ramp, release the remaining hires only if ramped attainment is at or above 42%; below it, redirect the budget.</li>
+<li>Run case B as a low-cost pricing test first: its NPV is positive but thin ($1.7M), and the 15% attach rate is unproven.</li>
+</ul>
+<p><em>Methods: 17 quarterly and annual reports (10-Q, 10-K) and 17 earnings releases (8-K), parsed from XBRL and filing text with every value traced to its accession number; the store passes a pre-flight of tie-out checks, and every figure in this memo is generated from the model and verified by tests. The cohort panel is calibrated synthetic data, the GTM inputs marked illustrative are assumptions, and headcount between annual 10-K disclosures is interpolated or estimated.</em></p></body></html>

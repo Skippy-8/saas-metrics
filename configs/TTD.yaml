@@ -1,0 +1,23 @@
+# The Trade Desk, Inc.: peer benchmark configuration (XBRL only).
+company:
+  ticker: TTD
+  name: The Trade Desk, Inc.
+  cik: 1671933
+  fiscal_year_end_month: 12
+
+benchmark:
+  lines:
+    revenue: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    cost_of_revenue: us-gaap:CostOfGoodsAndServicesSold   # "Platform operations"; see notes
+    rnd: us-gaap:ResearchAndDevelopmentExpense            # "Technology and development"
+    snm: us-gaap:SellingAndMarketingExpense
+    gna: us-gaap:GeneralAndAdministrativeExpense
+    operating_income: us-gaap:OperatingIncomeLoss
+    sbc: us-gaap:ShareBasedCompensation
+    cfo: us-gaap:NetCashProvidedByUsedInOperatingActivities
+    capex: [us-gaap:PaymentsToAcquirePropertyPlantAndEquipment, us-gaap:PaymentsToDevelopSoftware]
+  notes:
+    - The Trade Desk presents Platform operations within operating expenses and reports no gross profit
+      line; it tags Platform operations as cost of goods sold, so gross margin here is computed
+      (1 - Platform operations / revenue) and is less comparable with the SaaS peers.
+    - No amortization of intangibles is tagged; the non-GAAP approximation adds back SBC only.

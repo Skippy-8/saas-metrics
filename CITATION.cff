@@ -7,6 +7,6 @@ authors:
     given-names: Sneh
 repository-code: "https://github.com/Skippy-8/saas-metrics"
 license: MIT
-version: 0.1.0
+version: 0.2.0
 date-released: 2026-10-20
 keywords: [saas, net revenue retention, gross revenue retention, churn, revenue waterfall, fp&a]

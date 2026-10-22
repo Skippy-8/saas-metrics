@@ -1,0 +1,20 @@
+# Snowflake Inc.: peer benchmark configuration (XBRL only).
+company:
+  ticker: SNOW
+  name: Snowflake Inc.
+  cik: 1640147
+  fiscal_year_end_month: 1        # like MongoDB: FY26 ends January 31, 2026
+
+benchmark:
+  lines:
+    revenue: us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax
+    cost_of_revenue: us-gaap:CostOfGoodsAndServicesSold
+    rnd: us-gaap:ResearchAndDevelopmentExpense
+    snm: us-gaap:SellingAndMarketingExpense
+    gna: us-gaap:GeneralAndAdministrativeExpense
+    operating_income: us-gaap:OperatingIncomeLoss
+    sbc: us-gaap:ShareBasedCompensation
+    amortization: us-gaap:AmortizationOfIntangibleAssets
+    cfo: us-gaap:NetCashProvidedByUsedInOperatingActivities
+    capex: [us-gaap:PaymentsToAcquirePropertyPlantAndEquipment, us-gaap:PaymentsToDevelopSoftware]
+  check_tags: {gross_profit: us-gaap:GrossProfit}

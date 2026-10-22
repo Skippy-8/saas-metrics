@@ -5,9 +5,13 @@
     report.metrics; report.waterfall; report.to_excel("metrics.xlsx")
 
 Definitions: docs/definitions.md.
+
+The same package also carries the SEC and point-in-time toolkit (`benchmark`, `backtest`, `model`,
+`workbook`, `roi`, `cohort_engine`). Those modules pull their company-specific values from
+`configs/<TICKER>.yaml`; importing them has no side effects beyond the default active company (MDB).
 """
 from saas_metrics.engine import Check, Report, analyze
 from saas_metrics.inputs import InputError
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["analyze", "Report", "Check", "InputError", "__version__"]

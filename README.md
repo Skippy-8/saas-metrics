@@ -1,98 +1,250 @@
-# saas-metrics
+# saas-metrics: Point-in-Time FP&A Backtesting & Automated Excel Models
 
 [![PyPI](https://img.shields.io/pypi/v/saas-metrics)](https://pypi.org/project/saas-metrics/) [![ci](https://github.com/Skippy-8/saas-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/Skippy-8/saas-metrics/actions/workflows/ci.yml)
 
-SaaS revenue metrics from a raw billing export, with **written, tested definitions**:
-- a revenue waterfall, exact to the cent;
-- net and gross revenue retention, logo churn, quick ratio and ARR;
-- cohort triangles, concentration and tier migration;
-- an Excel workbook in which every metric is a live formula you can audit.
+**For Strategic Finance, PE Operating Partners, and Quant Analysts.** saas-metrics turns raw billing
+exports and SEC filings into written, tested definitions, a point-in-time forecast backtest, and an
+Excel model whose Checks tab proves the workbook matches the Python engine.
 
-Every finance team computes these metrics, and few define them the same way. saas-metrics is a small,
-open reference implementation:
-- it reads the export you already have (Stripe, Chargebee, an ERP, a spreadsheet) and maps its columns;
-- it spreads annual and multi-month invoices over their service periods;
-- it shows its work: pre-flight checks before any number, [definitions](docs/definitions.md) a test
-  enforces, and a workbook whose Checks tab proves it matches the engine.
+- **SEC XBRL extraction with ASC 606 splicing.** Revenue, deferred revenue, implied billings, RPO,
+  stock-based compensation and free cash flow are taken from companyfacts, resolved across tag
+  changes, and reconciled to each filer's own 10-K. No LLM, no estimate, no invented number.
+- **Zero look-ahead bias.** The walking-forward harness masks every filing after the origin date,
+  runs an independent guard over the history slice, and scores the forecast against the quarters
+  that followed. The frozen MongoDB model is scored next to it.
+- **Python to audited Excel.** The same engine writes a workbook in which every metric is a live
+  formula over blue input cells; the Checks tab recomputes each formula and reads PASS only when it
+  agrees with Python.
+
+## Quickstart
 
 ```bash
-pip install saas-metrics
-
-saas-metrics sample billing.csv          # a synthetic export to try it on
-saas-metrics report billing.csv --customer "Customer" --date "Invoice Date" --amount "Amount" \
-    --service-start "Service Start" --service-end "Service End" --segment "Plan Tier" --channel "Channel" \
-    --excel metrics.xlsx --out tables/
+pip install "saas-metrics[web]"            # the CLI, the MCP server and the Streamlit workbench
+saas-metrics sample billing.csv            # a synthetic billing export to try
+saas-metrics app                           # opens the workbench in your browser
 ```
 
-```python
-import saas_metrics as sm
+`pip install saas-metrics` alone gives the CLI and the Python library (Python 3.12+); the `mcp` extra adds
+only the MCP server. From a clone, `uv sync --extra web` installs everything and `streamlit run app.py` works too.
 
-report = sm.analyze("invoices.csv", mapping={"customer_id": "Customer", "period": "Date", "revenue": "Amount"})
-report.checks        # pre-flight checks (errors and warnings block; info explains what was done)
-report.metrics       # per period: revenue, ARR, ARPA, quick ratio, churn rates, NRR / GRR / logo retention (12m)
-report.waterfall     # New, Reactivation, Expansion, Contraction, Churn; identity exact to the cent
-report.to_excel("metrics.xlsx")
+**Where files go.** Company configs ship inside the package. Downloads, the DuckDB store and generated
+workbooks go to your user data folder (`~/Library/Application Support/saas-metrics` on macOS,
+`~/.local/share/saas-metrics` on Linux, `%LOCALAPPDATA%\saas-metrics` on Windows), or to `$SAAS_METRICS_HOME`
+if you set it. A source checkout keeps them in the repository's `data/` folder.
+
+**SEC access.** Anything that downloads from SEC EDGAR (the SEC Comps tab, `benchmark`, `quality`, `fetch`)
+needs a contact, as the SEC asks: set `SEC_USER_AGENT="Your Name you@example.com"` in the environment or a
+`.env` file. The point-in-time backtest also needs a built store: `saas-metrics fetch` then `saas-metrics build`.
+
+## The workbench
+
+The Streamlit app is a thin UI over the library, not a second implementation:
+
+| Tab | What it does |
+|---|---|
+| **SaaS SEC Comps** | Multiselect DDOG / SNOW / MDB by default, then call `quality.table`: deferred revenue, implied billings, RPO, SBC and SBC-adjusted FCF. |
+| **ARR Waterfall & Cohort Retention** | Upload a Stripe, Salesforce or Chargebee CSV; run the Phase 1 adapter; see row count, total MRR, starting and ending ARR, a cohort ARR chart, and download the audited `.xlsx`. |
+| **Point-in-Time Backtest Arena** | Run `PointInTimeBacktester` at several historical origins, then read the MAPE / bias scorecard and the 1Q and full-horizon variance bridges. Shown once a company store is built. |
+
+Every upload passes the adapter's pre-flight checks before a number appears. A failed row is shown,
+not silently dropped; a warning is surfaced beside the summary.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Billing CSVs<br/>Stripe · Chargebee · Salesforce"] --> C["DuckDB Engine<br/>canonical ledger · waterfall · cohorts"]
+    B["SEC EDGAR<br/>XBRL companyfacts"] --> C
+    C --> D["FastMCP Server<br/>deterministic tools"]
+    C --> E["Streamlit Workbench<br/>comps · ARR · backtest"]
+    D --> F["Audited Excel<br/>live formulas · Checks tab"]
+    E --> F
 ```
+
+The pipeline is deliberately one-way: raw data -> validated canonical tables -> deterministic Python
+-> an auditable artefact. Source values keep their filing or invoice provenance; a missing tag or an
+ambiguous column remains blank and is flagged rather than guessed.
 
 ## Why spreading matters
 
-An annual plan invoiced in January looks like a customer who arrives in January and churns in February.
-On the bundled sample export, counting invoices in the month billed produces **214 churn events**.
+An annual plan invoiced in January looks like a customer who arrives in January and churns in
+February. On the bundled sample export, counting invoices in the month billed produces **214 churn events**.
 Spreading each invoice by day over its service period gives **106**.
 
-Pass `--service-start` and `--service-end`, and each line is recognised evenly by day, in whole cents, so
-it still sums to what was billed. Service after the export's last month is deferred and reported, not
-counted.
+Pass `--service-start` and `--service-end`, and each line is recognised evenly by day, in whole cents,
+so it still sums to what was billed. Service after the export's last month is deferred and reported,
+not counted.
 
 ## What it checks before computing anything
 
+The billing engine has **24 pre-flight checks** in the full MongoDB build, and the standalone billing
+path checks the same things before any table is built:
+
 - **Errors** (always block): missing required columns, empty values, unparseable dates or amounts.
-- **Warnings** (block unless `--allow-warnings`):
-  - a period with no billing at all, which would read as everyone churning;
-  - a customer whose net revenue for a period is negative;
-  - dates in the future.
+- **Warnings** (block unless `--allow-warnings`): a period with no billing at all, a customer whose
+  net revenue for a period is negative, and dates in the future.
 - **Info:** split invoices and credits that were netted, how many lines were spread, and coverage.
 
-## Definitions
+The definitions are written out in [docs/definitions.md](docs/definitions.md) and enforced by tests.
+In short: New is first-ever revenue; Reactivation is revenue after a gap; Expansion, Contraction and
+Churn are measured against the previous period; NRR and GRR compare a period with the same period a
+year earlier; ARR is revenue times 12 at monthly grain and times 4 at quarterly grain.
 
-[docs/definitions.md](docs/definitions.md) has every rule. In short:
-- **Waterfall:** New is first-ever revenue. Reactivation is revenue after a gap. Expansion, Contraction
-  and Churn are measured against the previous period. The identity holds exactly.
-- **NRR (12m):** revenue now ÷ revenue a year ago, over customers who had revenue a year ago.
-- **GRR (12m):** the same, with each customer's revenue capped at its year-ago level.
-- **Logo retention (12m):** the share of those customers still billing.
-- **Quick ratio:** (New + Reactivation + Expansion) ÷ (Contraction + Churn).
-- **ARR:** revenue × 12 at monthly grain, × 4 at quarterly.
+## The frozen backtest
 
-The page ends with a worked example small enough to check by hand. It is also a test.
+The MongoDB model was frozen at Q2 FY26 (quarter ended July 31, 2025) using only information filed by
+**2025-08-27**. It then forecast the next four quarters. Revenue over those four quarters was
+**$46.8M (+1.7%)** above the frozen plan, but the quarterly path was less comfortable:
 
-## The workbook
+- The driver model's Base case had a **3.4%** mean absolute error; a simple trend extrapolation did
+  better at **3.0%**. Management's guidance was wider still.
+- Actual revenue fell inside the Downside-to-Upside range in **only one quarter**, so the scenario
+  band was too narrow.
+- A third baseline, a damped trend fitted only to history before the cutoff, did worse than both
+  naive methods (8.3% mean absolute error): it carried the FY25 slowdown forward.
+- The largest single quarterly revenue error came from the timing of Enterprise Advanced term
+  licenses, which are recognised up front. Free cash flow beat the plan mainly because last year's
+  same-quarter cash-conversion ratio was a poor guide.
 
-| Sheet | What it holds |
-|---|---|
-| Waterfall | Beginning links to the prior Ending; Ending is a formula, compared with the data |
-| Customers | Revenue by customer and period |
-| Metrics | Every metric as a formula. NRR and GRR use SUMPRODUCT over Customers. |
-| Engine | The Python results |
-| Checks | Reads PASS when every formula matches the engine |
+The walking-forward harness repeats that discipline at several origins. Each origin sees only facts
+filed on or before the origin date; `guard_no_future` raises `LookAheadBiasError` if a loader smuggles
+in a later period. The default four-origin run scores revenue at a 1.99% MAPE with a -1.14% bias, and
+FCF at a 96.45% MAPE with a +1.01% bias. Those are results from a small sample, not a claim that the
+method beats a naive forecast.
 
-Blue cells are data; black cells are formulas. No number is typed into a formula except 0 and 1.
+The GTM case for hiring **30** Enterprise AEs pays back on its own assumptions, but those assume roughly
+  2.5 times MongoDB's current sales efficiency. At the company's actual efficiency it does not pay back
+within **36** months. The memo recommends a smaller pilot gated on quota attainment.
 
-## How it is built
+## SEC XBRL peer comps
+
+Trailing four fiscal quarters, each company on its own fiscal calendar, from cached companyfacts:
+
+| Ticker | Quarter | Revenue TTM | Growth YoY | Gross margin | S&M % rev | GAAP op. margin | Non-GAAP op. margin (approx.) | FCF margin | Rule of 40 |
+|---|---|---|---|---|---|---|---|---|---|
+| MDB | Q2 FY27 | $2,783M | 25.5% | 72.7% | 35.3% | -0.5% | 20.3% | 23.7% | 49.1% |
+| DDOG | Q2 FY26 | $3,967M | 31.5% | 79.5% | 27.6% | 0.4% | 21.3% | 27.0% | 58.6% |
+| SNOW | Q2 FY27 | $5,435M | 32.0% | 67.0% | 42.4% | -22.8% | 10.0% | 22.0% | 54.0% |
+| TTD | Q2 FY26 | $2,990M | 11.6% | 76.9% | 22.6% | 19.6% | 34.7% | 28.4% | 40.0% |
+
+How to read it:
+
+- **Non-GAAP margin is approximate:** GAAP operating income plus stock-based compensation and
+  amortization. The companies' own definitions exclude more.
+- **TTD's gross margin is not comparable:** The Trade Desk reports no gross profit line, so its gross
+  margin is computed from Platform operations.
+- **Checks on every row:** each company's quarters must sum to its 10-K year, revenue minus cost must
+  equal its gross profit tag where one exists, and the row must be the latest quarter filed.
+- **Excel output:** ratios stay as live formulas over the TTM dollar columns.
+
+DDOG, SNOW and TTD are benchmark-only configs: `company`, `benchmark` and nothing else. MDB and the
+fictional SYNTHCO are full operating-model configs with SEC windows, drivers, cohort assumptions and
+checks. The two kinds are intentionally not interchangeable.
+
+## CLI
+
+```bash
+# Billing: canonical ledger, waterfall, retention and an audited workbook
+saas-metrics sample billing.csv
+saas-metrics ledger billing.csv --adapter stripe --duckdb billing.duckdb --analyze
+saas-metrics report billing.csv --customer "Customer" --date "Invoice Date" --amount "Amount" \
+    --service-start "Service Start" --service-end "Service End" --segment "Plan Tier" --channel "Channel" \
+    --excel metrics.xlsx --out tables/
+
+# SEC XBRL and revenue quality
+saas-metrics benchmark --tickers MDB DDOG SNOW TTD
+saas-metrics quality --tickers MDB DDOG SNOW TTD --out quality.xlsx
+
+# Cohorts and the point-in-time harness
+saas-metrics cohorts --input billing.csv --out out/
+saas-metrics cohorts --ledger MDB
+saas-metrics backtest
+saas-metrics backtest --pit --horizon 4 --evaluations 4
+
+# Full operating model (MDB is the default config)
+saas-metrics --config configs/MDB.yaml fetch
+saas-metrics --config configs/MDB.yaml build
+saas-metrics --config configs/MDB.yaml qc
+saas-metrics --config configs/MDB.yaml workbook
+saas-metrics --config configs/MDB.yaml backtest
+saas-metrics --config configs/MDB.yaml memo
+
+# MCP server
+saas-metrics mcp
+```
+
+The legacy `saasfpa` entry point is still installed:
+
+```bash
+saasfpa benchmark --tickers MDB DDOG SNOW TTD
+saasfpa cohorts --input billing.csv --out out/
+saasfpa unit-econ --n-ae 20 --rep-attrition 0.25 --target-payback 24
+```
+
+## MCP configuration
+
+The FastMCP server exposes four deterministic tools: `ingest_billing_ledger`,
+`generate_cohort_report`, `run_sec_peer_benchmark` and `analyze_revenue_quality`. Add this to the
+Claude Desktop configuration file (on macOS, `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "saas-metrics": {
+      "command": "uvx",
+      "args": ["--from", "saas-metrics[mcp]", "saas-metrics", "mcp"],
+      "env": {
+        "SEC_USER_AGENT": "Your Name you@example.com"
+      }
+    }
+  }
+}
+```
+
+Ingested ledgers go to `data/billing.duckdb` under the work root unless `SAAS_METRICS_LEDGER_DB` names another file.
+If Claude Desktop does not inherit your shell `PATH`, use the absolute path to `uvx` (run
+`which uvx`). From a source checkout, use `command: "uv"` and
+`args: ["run", "--directory", "/absolute/path/to/saas-metrics", "saas-metrics", "mcp"]`.
+
+## Reproducing the tests
+
+Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+make install
+make test
+ruff check src tests scripts
+```
+
+The test suite is offline: the DuckDB store is rebuilt from parsed SEC tables in `tests/fixtures`,
+companyfacts come from frozen fixtures, and billing examples are synthetic. The only network marker is
+`network`, which is excluded from the default run.
+
+## Layout
 
 ```
-saas_metrics/inputs.py    read (CSV, CSV.GZ, Parquet, XLSX, DataFrame), map columns, spread service periods
-saas_metrics/engine.py    pre-flight checks; DuckDB SQL engine (sql/*.sql); headline metrics; Report
-saas_metrics/excel.py     the auditable workbook
-saas_metrics/sample.py    a seeded synthetic billing export
-tests/                    an independent plain-Python waterfall, the hand-computed definitions, spreading,
-                          QC, the workbook recalculated with `formulas`
+app.py                 launches the workbench (src/saas_metrics/app.py) for `streamlit run` / Streamlit Cloud
+configs/               one YAML per company (MDB full model; DDOG, SNOW, TTD benchmark; examples/SYNTHCO);
+                       shipped inside the wheel as saas_metrics/configs
+src/saas_metrics/      engine, adapters, SEC/XBRL, quality, backtest, FastMCP server, the Streamlit workbench
+src/saasfpa/           the legacy compatibility package
+src/saas_metrics/sql/  analytical views, the billing engine's and the cohort engine's SQL
+tests/                 offline tests, fixtures and the golden snapshot
+models/                the audited Excel operating model
+memos/                 memo template and rendered memo
+docs/                  definitions, sources and the toolkit plan
 ```
 
-The engine began as the billing-data module of
-[saas-fpa-backtest](https://github.com/Skippy-8/saas-fpa-backtest), a point-in-time FP&A model of
-MongoDB. Its waterfall matches the one there to the cent on the same input.
+## Limitations
 
-## Licence
+- One real company and four test quarters are enough to diagnose this forecast, not to claim the
+  method is generally better than a naive one. On this sample, quarter by quarter, it was not.
+- The ARR proxy is not MongoDB's disclosed ARR, and the cohort panel is synthetic; splits that depend
+  on the assumed churn rate are directional.
+- Headcount is disclosed once a year, so the split between hiring pace and cost per head is uncertain
+  for the latest quarters, though their sum is exact.
+- The bridge attribution depends on the substitution order.
+- Peer comps use each company's XBRL tags as filed. A changed or missing tag is caught by the checks or
+  the notes, but definitions still differ between companies.
 
-MIT. The sample data is synthetic.
+The sample data is synthetic. The licence is MIT.
