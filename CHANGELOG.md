@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2026-10-22)
+
+- **Workbench fix:** the billing tab's "Total MRR" tile summed MRR over every row of the export's history (total
+  billings). It now shows **current MRR** (ending ARR / 12), from the new `Report.headline()`.
+
 ## 0.2.0 (2026-10-22)
 
 The billing library becomes a toolkit. Everything in 0.1.0 works as before (`analyze`, `report`, `sample`).

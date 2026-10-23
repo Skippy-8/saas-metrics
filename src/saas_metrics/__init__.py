@@ -13,5 +13,5 @@ The same package also carries the SEC and point-in-time toolkit (`benchmark`, `b
 from saas_metrics.engine import Check, Report, analyze
 from saas_metrics.inputs import InputError
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __all__ = ["analyze", "Report", "Check", "InputError", "__version__"]
