@@ -43,7 +43,7 @@ The Streamlit app is a thin UI over the library, not a second implementation:
 | Tab | What it does |
 |---|---|
 | **SaaS SEC Comps** | Multiselect DDOG / SNOW / MDB by default, then call `quality.table`: deferred revenue, implied billings, RPO, SBC and SBC-adjusted FCF. |
-| **ARR Waterfall & Cohort Retention** | Upload a Stripe, Salesforce or Chargebee CSV; run the Phase 1 adapter; see row count, total MRR, starting and ending ARR, a cohort ARR chart, and download the audited `.xlsx`. |
+| **ARR Waterfall & Cohort Retention** | Upload a Stripe, Salesforce or Chargebee CSV; run the Phase 1 adapter; see row count, current MRR (ending ARR / 12), starting and ending ARR, a cohort ARR chart, and download the audited `.xlsx`. |
 | **Point-in-Time Backtest Arena** | Run `PointInTimeBacktester` at several historical origins, then read the MAPE / bias scorecard and the 1Q and full-horizon variance bridges. Shown once a company store is built. |
 
 Every upload passes the adapter's pre-flight checks before a number appears. A failed row is shown,

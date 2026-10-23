@@ -49,6 +49,13 @@ class Report:
             return tables[name]
         raise AttributeError(name)
 
+    def headline(self) -> dict[str, float]:
+        """ARR at the start and end of the last period, and current MRR (ending ARR / 12, whatever the grain)."""
+        k = ANNUALIZE[self.grain]
+        ending_arr = float(self.metrics.iloc[-1]["arr"])
+        return {"starting_arr": float(self.waterfall.iloc[-1]["beginning"]) * k, "ending_arr": ending_arr,
+                "current_mrr": ending_arr / 12}
+
     def to_csv(self, folder: str | Path) -> list[Path]:
         folder = Path(folder)
         folder.mkdir(parents=True, exist_ok=True)

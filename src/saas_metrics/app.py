@@ -319,20 +319,18 @@ def _render_billing() -> None:
                 st.write(f"- **{check.level.upper()} {check.name}**: {check.detail}")
         return
 
-    waterfall, metrics = report.waterfall, report.metrics
-    annualize = engine.ANNUALIZE[report.grain]
-    starting_arr = float(waterfall.iloc[-1]["beginning"]) * annualize
-    ending_arr = float(metrics.iloc[-1]["arr"])
-    total_mrr = pd.to_numeric(ledger.frame["mrr_amount"], errors="coerce").sum()
+    waterfall = report.waterfall
+    head = report.headline()
 
     cols = st.columns(4)
     cols[0].metric("Row count", f"{len(ledger.frame):,}")
-    cols[1].metric("Total MRR", f"${total_mrr:,.0f}")
-    cols[2].metric("Starting ARR", f"${starting_arr:,.0f}")
-    cols[3].metric("Ending ARR", f"${ending_arr:,.0f}")
+    cols[1].metric("Current MRR", f"${head['current_mrr']:,.0f}")
+    cols[2].metric("Starting ARR", f"${head['starting_arr']:,.0f}")
+    cols[3].metric("Ending ARR", f"${head['ending_arr']:,.0f}")
     st.caption(
         f"{len(waterfall)} {report.grain}(s); starting ARR is the beginning of the last period "
-        f"({pd.Timestamp(waterfall.iloc[-1]['period_end']).date()}); ending ARR is its end."
+        f"({pd.Timestamp(waterfall.iloc[-1]['period_end']).date()}); ending ARR is its end; "
+        "current MRR is ending ARR / 12."
     )
     with st.expander("DuckDB ingest log"):
         st.text(ingest_summary)

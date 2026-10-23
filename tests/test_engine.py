@@ -124,3 +124,17 @@ def test_mapping_and_formats(tmp_path, monthly):
     pq = tmp_path / "b.parquet"
     read(SAMPLE).to_parquet(pq)
     assert list(sm.analyze(pq, today=TODAY).waterfall.ending) == list(monthly.waterfall.ending)
+
+
+@pytest.mark.parametrize("grain", ["month", "quarter"])
+def test_headline_current_mrr_is_the_last_period_run_rate(grain):
+    """The workbench's tiles: current MRR is ending ARR / 12, not the sum of MRR over every row of history."""
+    r = sm.analyze(SAMPLE, grain=grain, today=TODAY)
+    h = r.headline()
+    last = r.metrics.iloc[-1]
+    assert h["ending_arr"] == pytest.approx(last["arr"])
+    assert h["current_mrr"] == pytest.approx(last["arr"] / 12)
+    k = 12 if grain == "month" else 4
+    assert h["current_mrr"] == pytest.approx(r.waterfall.iloc[-1]["ending"] * k / 12)    # last period's revenue, monthly
+    assert h["starting_arr"] == pytest.approx(r.waterfall.iloc[-1]["beginning"] * k)
+    assert h["current_mrr"] < read(SAMPLE)["revenue"].astype(float).sum() / 12           # far below the historical total
